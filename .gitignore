@@ -1,0 +1,43 @@
+# Visual Studio
+.vs/
+
+# Build artifacts
+Debug/
+Release/
+x64/
+x86/
+*.obj
+*.pdb
+*.exe
+*.ilk
+*.ipch
+*.log
+
+# CMake build folders
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
+*.log
+
+# Compiled resource files
+*.res
+
+# Generated files
+*.tlog/
+*.lastbuildstate
+*.idb
+
+# Personal settings
+*.VC.db
+*.VC.opendb
+
+include/GLFW
+lib/glfw
+.clang-format
