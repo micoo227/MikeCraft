@@ -1,0 +1,50 @@
+BasedOnStyle: Google
+
+# Indentation settings
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+# Braces and control statements
+BreakBeforeBraces: Allman
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+# Column width
+ColumnLimit: 100
+
+# Pointer and reference alignment
+PointerAlignment: Left
+
+# Include sorting
+IncludeBlocks: Preserve
+IncludeCategories:
+  - Regex: '^<.*\.h>'
+    Priority: 1
+  - Regex: '^"'
+    Priority: 2
+  - Regex: '^<.*>'
+    Priority: 3
+SortIncludes: false
+
+# Namespace settings
+NamespaceIndentation: All
+
+# Spaces and padding
+SpaceBeforeParens: ControlStatements
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpaceAfterCStyleCast: true
+
+# Alignments
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+AlignTrailingComments: true
+AlignOperands: true
+
+# Miscellaneous
+Cpp11BracedListStyle: true
+FixNamespaceComments: true
+IndentCaseLabels: true
+ReflowComments: true
