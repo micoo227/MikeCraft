@@ -41,3 +41,5 @@ Makefile
 
 include/GLFW
 lib/glfw
+include/zlib
+lib/zlib

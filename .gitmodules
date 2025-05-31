@@ -1,3 +1,6 @@
 [submodule "extern/glfw"]
-    path = extern/glfw
-    url = https://github.com/glfw/glfw.git
+	path = extern/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "extern/zlib"]
+	path = extern/zlib
+	url = https://github.com/madler/zlib.git

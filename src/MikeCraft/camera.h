@@ -28,7 +28,10 @@ class Camera
 
     Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
            glm::vec3 up       = glm::vec3(0.0f, 1.0f, 0.0f));
+
     glm::mat4 getViewMatrix();
+    glm::mat4 getProjectionMatrix(float aspectRatio = 4.0f / 3.0f, float nearPlane = 0.1f,
+                                  float farPlane = 100.0f) const;
     void      processKeyboard(MovementDirections direction, float deltaTime);
     void      processMouseMovement(float xOffset, float yOffset);
 

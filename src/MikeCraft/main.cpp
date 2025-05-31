@@ -1,10 +1,11 @@
+#include "camera.h"
+#include "chunk_manager.h"
+#include "file_utils.h"
+#include "renderer.h"
+#include "shader.h"
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include "camera.h"
-#include "shader.h"
 
 #include <iostream>
 
@@ -49,7 +50,7 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     }
 
     float xOffset = xpos - lastX;
-    float yOffset = lastY - ypos;  // reversed since y-coordinates go from bottom to top
+    float yOffset = lastY - ypos;  // Reversed since y-coordinates go from bottom to top
     lastX         = xpos;
     lastY         = ypos;
 
@@ -58,6 +59,8 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 
 int main()
 {
+    ensureWorldFolderExists();
+
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -84,34 +87,16 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
 
-    /////////////
-
     Shader shader("../../res/shaders/default.vert", "../../res/shaders/default.frag");
 
-    /////////////
+    Renderer     renderer(shader, camera);
+    ChunkManager chunkManager;
 
-    float vertices[] = {0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f};
-    unsigned int indices[] = {0, 1, 2, 1, 2, 3};
-
-    unsigned int VBO, VAO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*) 0);
-    glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glBindVertexArray(0);
+    Chunk&              chunk  = chunkManager.getChunk(1, 1);
+    Chunk&              chunk2 = chunkManager.getChunk(-1, -1);
+    Chunk&              chunk3 = chunkManager.getChunk(1, -1);
+    Chunk&              chunk4 = chunkManager.getChunk(-1, 1);
+    std::vector<Chunk*> chunks = chunkManager.getLoadedChunks();
 
     while (!glfwWindowShouldClose(window))
     {
@@ -124,29 +109,13 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        shader.use();
-
-        glm::mat4 projection =
-            glm::perspective(glm::radians(45.0f), (float) 800 / (float) 600, 0.1f, 100.0f);
-        shader.setMat4("projection", projection);
-
-        glm::mat4 view = camera.getViewMatrix();
-        shader.setMat4("view", view);
-
-        glm::mat4 model = glm::mat4(1.0f);
-        model           = glm::translate(model, glm::vec3(0.0f, 0.0f, -3.0f));
-        shader.setMat4("model", model);
-
-        glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        renderer.renderChunks(chunks);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
+    chunkManager.unloadAllChunks();
 
     glfwTerminate();
     return 0;
