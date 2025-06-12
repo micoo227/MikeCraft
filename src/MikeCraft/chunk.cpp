@@ -1,6 +1,7 @@
 #include "chunk.h"
 #include "zlib/zlib.h"
 
+#include <glm/vec2.hpp>
 #include <stdexcept>
 
 // clang-format off
@@ -90,25 +91,26 @@ void Chunk::generateMesh()
 
                 for (int face = 0; face < 6; ++face)
                 {
-                    int nx = x, ny = y, nz = z;
-                    switch (face)
+                    Direction dir = static_cast<Direction>(face);
+                    int       nx = x, ny = y, nz = z;
+                    switch (dir)
                     {
-                        case 0:
+                        case Direction::LEFT:
                             nx = x - 1;
                             break;  // left
-                        case 1:
+                        case Direction::RIGHT:
                             nx = x + 1;
                             break;  // right
-                        case 2:
+                        case Direction::BOTTOM:
                             ny = y - 1;
                             break;  // bottom
-                        case 3:
+                        case Direction::TOP:
                             ny = y + 1;
                             break;  // top
-                        case 4:
+                        case Direction::BACK:
                             nz = z - 1;
                             break;  // back
-                        case 5:
+                        case Direction::FRONT:
                             nz = z + 1;
                             break;  // front
                     }
@@ -120,7 +122,7 @@ void Chunk::generateMesh()
                     if (neighborSolid)
                         continue;
 
-                    addFace(x, y, z, face, indexOffset);
+                    addFace(x, y, z, dir, indexOffset);
                 }
             }
         }
@@ -147,9 +149,14 @@ void Chunk::uploadMeshToGPU()
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, meshIndices.size() * sizeof(GLuint), meshIndices.data(),
                  GL_STATIC_DRAW);
 
-    // Position attribute (assuming 3 floats per vertex)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*) 0);
+    // Position attribute (3 floats)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*) 0);
     glEnableVertexAttribArray(0);
+
+    // Texture coordinate attribute (2 floats)
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat),
+                          (void*) (3 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -177,14 +184,27 @@ void Chunk::deleteMesh()
     meshIndices.clear();
 }
 
-void Chunk::addFace(int x, int y, int z, int face, GLuint& indexOffset)
+void Chunk::addFace(int x, int y, int z, Direction face, GLuint& indexOffset)
 {
-    const GLfloat* offsets = faceVertexOffsets[face];
+    const GLfloat* offsets = faceVertexOffsets[static_cast<int>(face)];
+
+    constexpr float cellSize = 1.0f / 16.0f;
+    AtlasCoords     coords   = Block::getAtlasCoords(getBlock(x, y, z).getId(), face);
+    float           u_min    = coords.x * cellSize;
+    float           v_min    = coords.y * cellSize;
+    float           u_max    = u_min + cellSize;
+    float           v_max    = v_min + cellSize;
+
+    // UVs for the 4 face vertices (adjust order if needed)
+    glm::vec2 faceUVs[4] = {{u_min, v_min}, {u_max, v_min}, {u_max, v_max}, {u_min, v_max}};
+
     for (int i = 0; i < 4; ++i)
     {
         meshVertices.push_back(x + offsets[i * 3 + 0]);
         meshVertices.push_back(y + offsets[i * 3 + 1]);
         meshVertices.push_back(z + offsets[i * 3 + 2]);
+        meshVertices.push_back(faceUVs[i].x);
+        meshVertices.push_back(faceUVs[i].y);
     }
     // Add 6 indices for the face in order to make 2 tris
     for (int i = 0; i < 6; ++i)

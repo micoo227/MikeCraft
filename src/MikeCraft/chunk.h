@@ -41,5 +41,5 @@ class Chunk
     int                chunkX, chunkZ;
     std::vector<Block> blocks;  // 1 byte per block
 
-    void addFace(int x, int y, int z, int face, GLuint& indexOffset);
+    void addFace(int x, int y, int z, Direction face, GLuint& indexOffset);
 };

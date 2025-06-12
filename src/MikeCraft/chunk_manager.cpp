@@ -47,7 +47,7 @@ Chunk& ChunkManager::getChunk(int chunkX, int chunkZ)
             {
                 for (int z = 0; z < layerSize; ++z)
                 {
-                    chunk->setBlock(startX + x, y, startZ + z, Block(Block::Id::DIRT));
+                    chunk->setBlock(startX + x, y, startZ + z, Block(Block::Id::GRASS));
                 }
             }
         }

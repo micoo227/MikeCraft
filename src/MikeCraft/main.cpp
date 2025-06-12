@@ -3,6 +3,7 @@
 #include "file_utils.h"
 #include "renderer.h"
 #include "shader.h"
+#include "texture_atlas.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -87,7 +88,11 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
 
-    Shader shader("../../res/shaders/default.vert", "../../res/shaders/default.frag");
+    Shader       shader("../../res/shaders/default.vert", "../../res/shaders/default.frag");
+    TextureAtlas textureAtlas("../../res/images/atlas.png", true);
+    textureAtlas.bind(0);
+    shader.use();
+    shader.setInt("atlas", 0);
 
     Renderer     renderer(shader, camera);
     ChunkManager chunkManager;

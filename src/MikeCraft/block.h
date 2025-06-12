@@ -2,6 +2,21 @@
 
 #include <glad/glad.h>
 
+struct AtlasCoords
+{
+    int x, y;
+};
+
+enum class Direction
+{
+    LEFT,
+    RIGHT,
+    BOTTOM,
+    TOP,
+    BACK,
+    FRONT
+};
+
 class Block
 {
    public:
@@ -19,6 +34,8 @@ class Block
     };
 
     Block(Id id);
+
+    static AtlasCoords getAtlasCoords(Id id, Direction face);
 
     Id   getId() const;
     bool isSolid() const;

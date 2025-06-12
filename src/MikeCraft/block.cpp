@@ -19,6 +19,24 @@ Block::Block(Id id) : id(id)
     }
 }
 
+AtlasCoords Block::getAtlasCoords(Block::Id id, Direction face)
+{
+    switch (id)
+    {
+        case Id::GRASS:
+            if (face == Direction::TOP)
+                return AtlasCoords{0, 15};
+            else if (face == Direction::BOTTOM)
+                return AtlasCoords{2, 15};
+            else
+                return AtlasCoords{1, 15};
+        case Id::DIRT:
+            return {2, 15};
+        default:
+            return {0, 0};
+    }
+}
+
 Block::Id Block::getId() const
 {
     return id;
