@@ -87,6 +87,9 @@ int main()
     }
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
 
     Shader       shader("../../res/shaders/default.vert", "../../res/shaders/default.frag");
     TextureAtlas textureAtlas("../../res/images/atlas.png", true);
