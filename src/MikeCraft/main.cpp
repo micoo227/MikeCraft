@@ -36,6 +36,10 @@ void processInput(GLFWwindow* window)
         camera.processKeyboard(MovementDirections::LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.processKeyboard(MovementDirections::RIGHT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        camera.processKeyboard(MovementDirections::UP, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+        camera.processKeyboard(MovementDirections::DOWN, deltaTime);
 }
 
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
