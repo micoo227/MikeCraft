@@ -7,6 +7,7 @@
 #include <memory>
 #include <optional>
 #include <fstream>
+#include <mutex>
 
 class RegionFile
 {
@@ -29,6 +30,7 @@ class RegionFile
     std::string             filePath;
     std::fstream            file;
     std::vector<FreeRegion> freeList;
+    std::mutex              fileMutex;
 
     void initializeRegionFile();
 };

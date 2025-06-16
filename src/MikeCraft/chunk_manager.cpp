@@ -6,57 +6,22 @@
 #include <stdexcept>
 #include <vector>
 
+ChunkManager::ChunkManager()
+{
+    workerThread = std::thread(&ChunkManager::workerFunc, this);
+}
+
+ChunkManager::~ChunkManager()
+{
+    stopWorker();
+}
+
 std::vector<Chunk*> ChunkManager::getLoadedChunks() const
 {
     std::vector<Chunk*> result;
     for (const auto& pair : loadedChunks)
         result.push_back(pair.second.get());
     return result;
-}
-
-// Get a chunk (load it if not already loaded)
-Chunk& ChunkManager::getChunk(int chunkX, int chunkZ)
-{
-    auto key = std::make_pair(chunkX, chunkZ);
-
-    auto it = loadedChunks.find(key);
-    if (it != loadedChunks.end())
-        return *(it->second);
-
-    RegionFile* region = getRegionFile(chunkX, chunkZ);
-    auto        data   = region->loadChunk(chunkX, chunkZ);
-    auto        chunk  = std::make_unique<Chunk>(chunkX, chunkZ);
-    if (!data.empty())
-    {
-        deserializeChunk(*chunk, data);
-    }
-    else
-    {
-        // Generate a small pyramid (temporary implementation before worldgen)
-        int baseSize = 7;
-        int height   = 4;
-        int centerX  = Chunk::WIDTH / 2;
-        int centerZ  = Chunk::DEPTH / 2;
-
-        for (int y = 0; y < height; ++y)
-        {
-            int layerSize = baseSize - 2 * y;
-            int startX    = centerX - layerSize / 2;
-            int startZ    = centerZ - layerSize / 2;
-            for (int x = 0; x < layerSize; ++x)
-            {
-                for (int z = 0; z < layerSize; ++z)
-                {
-                    chunk->setBlock(startX + x, y, startZ + z, Block(Block::Id::GRASS));
-                }
-            }
-        }
-    }
-
-    chunk->generateMesh();
-    chunk->uploadMeshToGPU();
-    loadedChunks[key] = std::move(chunk);
-    return *(loadedChunks[key]);
 }
 
 // Unload a chunk (save it to disk and remove it from memory)
@@ -89,9 +54,70 @@ void ChunkManager::unloadAllChunks()
     loadedChunks.clear();
 }
 
+void ChunkManager::updateChunksAroundPlayer(float playerX, float playerZ, int renderRadius)
+{
+    int playerChunkX = static_cast<int>(std::floor(playerX / Chunk::WIDTH));
+    int playerChunkZ = static_cast<int>(std::floor(playerZ / Chunk::DEPTH));
+
+    for (int dx = -renderRadius; dx <= renderRadius; ++dx)
+    {
+        for (int dz = -renderRadius; dz <= renderRadius; ++dz)
+        {
+            int  chunkX = playerChunkX + dx;
+            int  chunkZ = playerChunkZ + dz;
+            auto key    = std::make_pair(chunkX, chunkZ);
+            if (loadedChunks.find(key) == loadedChunks.end())
+                enqueueChunkLoad(chunkX, chunkZ);
+        }
+    }
+
+    std::vector<std::pair<int, int>> toUnload;
+    for (const auto& pair : loadedChunks)
+    {
+        int chunkX = pair.first.first;
+        int chunkZ = pair.first.second;
+        int dx     = chunkX - playerChunkX;
+        int dz     = chunkZ - playerChunkZ;
+        if (std::abs(dx) > renderRadius || std::abs(dz) > renderRadius)
+        {
+            toUnload.emplace_back(chunkX, chunkZ);
+        }
+    }
+    for (const auto& key : toUnload)
+    {
+        unloadChunk(key.first, key.second);
+    }
+}
+
+void ChunkManager::processChunkUploads()
+{
+    std::lock_guard<std::mutex> lock(readyMutex);
+    int                         uploadsThisFrame   = 0;
+    const int                   maxUploadsPerFrame = 2;
+
+    while (!readyChunks.empty() && uploadsThisFrame < maxUploadsPerFrame)
+    {
+        auto& pending = readyChunks.front();
+        pending.chunk->uploadMeshToGPU();
+        loadedChunks[{pending.chunkX, pending.chunkZ}] = std::move(pending.chunk);
+        readyChunks.pop();
+        ++uploadsThisFrame;
+    }
+}
+
+void ChunkManager::stopWorker()
+{
+    stopWorkerThread = true;
+    queueCV.notify_all();
+    if (workerThread.joinable())
+        workerThread.join();
+}
+
 // Helper to get or create a RegionFile for a given chunk
 RegionFile* ChunkManager::getRegionFile(int chunkX, int chunkZ)
 {
+    std::lock_guard<std::mutex> lock(regionFilesMutex);
+
     int  regionX = chunkX / REGION_SIZE;
     int  regionZ = chunkZ / REGION_SIZE;
     auto key     = std::make_pair(regionX, regionZ);
@@ -151,4 +177,57 @@ void ChunkManager::deserializeChunk(Chunk& chunk, const std::vector<uint8_t>& da
             }
         }
     }
+}
+
+void ChunkManager::workerFunc()
+{
+    while (!stopWorkerThread)
+    {
+        std::pair<int, int> request;
+        {
+            std::unique_lock<std::mutex> lock(queueMutex);
+            queueCV.wait(lock, [&] { return !chunkLoadQueue.empty() || stopWorkerThread; });
+            if (stopWorkerThread)
+                break;
+            request = chunkLoadQueue.front();
+            chunkLoadQueue.pop();
+        }
+
+        int chunkX = request.first;
+        int chunkZ = request.second;
+
+        RegionFile* region = getRegionFile(chunkX, chunkZ);
+        auto        data   = region->loadChunk(chunkX, chunkZ);
+        auto        chunk  = std::make_unique<Chunk>(chunkX, chunkZ);
+        if (!data.empty())
+            deserializeChunk(*chunk, data);
+        else
+        {
+            // Generate a small pyramid (temporary implementation before worldgen)
+            int baseSize = 7, height = 4;
+            int centerX = Chunk::WIDTH / 2, centerZ = Chunk::DEPTH / 2;
+            for (int y = 0; y < height; ++y)
+            {
+                int layerSize = baseSize - 2 * y;
+                int startX    = centerX - layerSize / 2;
+                int startZ    = centerZ - layerSize / 2;
+                for (int x = 0; x < layerSize; ++x)
+                    for (int z = 0; z < layerSize; ++z)
+                        chunk->setBlock(startX + x, y, startZ + z, Block(Block::Id::GRASS));
+            }
+        }
+        chunk->generateMesh();
+
+        {
+            std::lock_guard<std::mutex> lock(readyMutex);
+            readyChunks.push({chunkX, chunkZ, std::move(chunk)});
+        }
+    }
+}
+
+void ChunkManager::enqueueChunkLoad(int chunkX, int chunkZ)
+{
+    std::lock_guard<std::mutex> lock(queueMutex);
+    chunkLoadQueue.emplace(chunkX, chunkZ);
+    queueCV.notify_one();
 }

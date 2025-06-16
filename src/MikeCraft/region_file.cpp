@@ -19,6 +19,8 @@ RegionFile::RegionFile(const std::string& filePath) : filePath(filePath)
 // Helper to load a chunk from the region file
 std::vector<uint8_t> RegionFile::loadChunk(int chunkX, int chunkZ)
 {
+    std::lock_guard<std::mutex> lock(fileMutex);
+
     // Use & instead of % to prevent negative values
     int index = 4 * ((chunkX & (REGION_SIZE - 1)) + (chunkZ & (REGION_SIZE - 1)) * REGION_SIZE);
 
@@ -46,6 +48,8 @@ std::vector<uint8_t> RegionFile::loadChunk(int chunkX, int chunkZ)
 
 void RegionFile::saveChunk(const Chunk& chunk)
 {
+    std::lock_guard<std::mutex> lock(fileMutex);
+
     // Use & instead of % to prevent negative values
     int index =
         4 * ((chunk.getX() & (REGION_SIZE - 1)) + (chunk.getZ() & (REGION_SIZE - 1)) * REGION_SIZE);

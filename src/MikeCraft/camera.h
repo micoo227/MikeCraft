@@ -33,7 +33,7 @@ class Camera
 
     glm::mat4 getViewMatrix();
     glm::mat4 getProjectionMatrix(float aspectRatio = 4.0f / 3.0f, float nearPlane = 0.1f,
-                                  float farPlane = 100.0f) const;
+                                  float farPlane = 500.0f) const;
     void      processKeyboard(MovementDirections direction, float deltaTime);
     void      processMouseMovement(float xOffset, float yOffset);
 

@@ -10,10 +10,13 @@
 
 #include <iostream>
 
-bool   firstMouse = true;
-float  lastX      = 800.0f / 2.0;
-float  lastY      = 600.0f / 2.0;
-Camera camera;
+bool      firstMouse = true;
+float     lastX      = 800.0f / 2.0;
+float     lastY      = 600.0f / 2.0;
+Camera    camera;
+int       lastPlayerChunkX = 0;
+int       lastPlayerChunkZ = 0;
+const int renderRadius     = 2;
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -104,11 +107,12 @@ int main()
     Renderer     renderer(shader, camera);
     ChunkManager chunkManager;
 
-    Chunk&              chunk  = chunkManager.getChunk(1, 1);
-    Chunk&              chunk2 = chunkManager.getChunk(-1, -1);
-    Chunk&              chunk3 = chunkManager.getChunk(1, -1);
-    Chunk&              chunk4 = chunkManager.getChunk(-1, 1);
-    std::vector<Chunk*> chunks = chunkManager.getLoadedChunks();
+    glm::vec3 playerPos    = camera.position;
+    int       playerChunkX = static_cast<int>(std::floor(playerPos.x / Chunk::WIDTH));
+    int       playerChunkZ = static_cast<int>(std::floor(playerPos.z / Chunk::DEPTH));
+    chunkManager.updateChunksAroundPlayer(playerPos.x, playerPos.z, renderRadius);
+    lastPlayerChunkX = playerChunkX;
+    lastPlayerChunkZ = playerChunkZ;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -118,9 +122,23 @@ int main()
 
         processInput(window);
 
+        playerPos    = camera.position;
+        playerChunkX = static_cast<int>(std::floor(playerPos.x / Chunk::WIDTH));
+        playerChunkZ = static_cast<int>(std::floor(playerPos.z / Chunk::DEPTH));
+
+        if (playerChunkX != lastPlayerChunkX || playerChunkZ != lastPlayerChunkZ)
+        {
+            chunkManager.updateChunksAroundPlayer(playerPos.x, playerPos.z, renderRadius);
+            lastPlayerChunkX = playerChunkX;
+            lastPlayerChunkZ = playerChunkZ;
+        }
+
+        chunkManager.processChunkUploads();
+
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        std::vector<Chunk*> chunks = chunkManager.getLoadedChunks();
         renderer.renderChunks(chunks);
 
         glfwSwapBuffers(window);
