@@ -1,6 +1,7 @@
 #pragma once
 
 #include "chunk.h"
+#include "world_generator.h"
 
 #include <vector>
 #include <string>
@@ -19,6 +20,13 @@ class RegionFile
     };
 
     explicit RegionFile(const std::string& filePath);
+
+    std::vector<float> continentGrid;
+    std::vector<float> erosionGrid;
+    std::vector<float> pvGrid;
+
+    void generateNoiseGrids(const WorldGenerator& generator, int regionX, int regionZ,
+                            float frequency, int seed);
 
     std::vector<uint8_t>      loadChunk(int chunkX, int chunkZ);
     void                      saveChunk(const Chunk& chunk);

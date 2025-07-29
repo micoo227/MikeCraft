@@ -24,11 +24,11 @@ class Camera
     float yaw   = -90.0f;
     float pitch = 0.0f;
 
-    float movementSpeed    = 10.0f;
+    float movementSpeed    = 50.0f;
     float mouseSensitivity = 0.1f;
-    float zoom             = 45.0f;
+    float zoom             = 90.0f;
 
-    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
+    Camera(glm::vec3 position = glm::vec3(0.0f, 100.0f, 0.0f),
            glm::vec3 up       = glm::vec3(0.0f, 1.0f, 0.0f));
 
     glm::mat4 getViewMatrix();

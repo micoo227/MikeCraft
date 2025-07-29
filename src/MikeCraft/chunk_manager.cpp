@@ -1,12 +1,13 @@
 #include "chunk_manager.h"
 #include "constants.h"
 #include "file_utils.h"
+#include "world_generator.h"
 #include "zlib/zlib.h"
 
 #include <stdexcept>
 #include <vector>
 
-ChunkManager::ChunkManager()
+ChunkManager::ChunkManager(WorldGenerator& generator) : worldGenerator(generator)
 {
     workerThread = std::thread(&ChunkManager::workerFunc, this);
 }
@@ -118,8 +119,8 @@ RegionFile* ChunkManager::getRegionFile(int chunkX, int chunkZ)
 {
     std::lock_guard<std::mutex> lock(regionFilesMutex);
 
-    int  regionX = chunkX / REGION_SIZE;
-    int  regionZ = chunkZ / REGION_SIZE;
+    int  regionX = static_cast<int>(std::floor(static_cast<double>(chunkX) / REGION_SIZE));
+    int  regionZ = static_cast<int>(std::floor(static_cast<double>(chunkZ) / REGION_SIZE));
     auto key     = std::make_pair(regionX, regionZ);
 
     auto it = regionFiles.find(key);
@@ -203,17 +204,46 @@ void ChunkManager::workerFunc()
             deserializeChunk(*chunk, data);
         else
         {
-            // Generate a small pyramid (temporary implementation before worldgen)
-            int baseSize = 7, height = 4;
-            int centerX = Chunk::WIDTH / 2, centerZ = Chunk::DEPTH / 2;
-            for (int y = 0; y < height; ++y)
+            int regionX = static_cast<int>(std::floor(static_cast<double>(chunkX) / REGION_SIZE));
+            int regionZ = static_cast<int>(std::floor(static_cast<double>(chunkZ) / REGION_SIZE));
+            region->generateNoiseGrids(worldGenerator, regionX, regionZ, 0.01f,
+                                       0);  // Temp frequency and seed
+
+            for (int x = 0; x < Chunk::WIDTH; ++x)
             {
-                int layerSize = baseSize - 2 * y;
-                int startX    = centerX - layerSize / 2;
-                int startZ    = centerZ - layerSize / 2;
-                for (int x = 0; x < layerSize; ++x)
-                    for (int z = 0; z < layerSize; ++z)
-                        chunk->setBlock(startX + x, y, startZ + z, Block(Block::Id::GRASS));
+                for (int z = 0; z < Chunk::DEPTH; ++z)
+                {
+                    // TODO: make below more clear (move into WorldGenerator)
+                    int regionBlockX = x + (chunkX & (REGION_SIZE - 1)) * Chunk::WIDTH;
+                    int regionBlockZ = z + (chunkZ & (REGION_SIZE - 1)) * Chunk::DEPTH;
+
+                    // clang-format off
+                    float continentNoise = worldGenerator.getInterpolatedNoise(
+                        region->continentGrid, regionBlockX, regionBlockZ);
+                    float erosionNoise = worldGenerator.getInterpolatedNoise(
+                        region->erosionGrid, regionBlockX, regionBlockZ);
+                    float pvNoise = worldGenerator.getInterpolatedNoise(
+                        region->pvGrid, regionBlockX, regionBlockZ);
+                    // clang-format on
+
+                    float continentVal = worldGenerator.continentSpline.evaluate(continentNoise);
+                    float erosionVal   = worldGenerator.erosionSpline.evaluate(erosionNoise);
+                    float pvVal        = worldGenerator.pvSpline.evaluate(pvNoise);
+
+                    // float targetHeight = continentVal * erosionVal + pvVal * 10.0f;
+                    float targetHeight = continentVal;
+                    int   blockY       = static_cast<int>(targetHeight);
+
+                    for (int y = 0; y < blockY && y < Chunk::HEIGHT; ++y)
+                    {
+                        Block::Id id = Block::Id::DIRT;
+                        if (y == blockY - 1)
+                            id = Block::Id::GRASS;
+                        if (y < blockY - 5)
+                            id = Block::Id::STONE;
+                        chunk->setBlock(x, y, z, Block(id));
+                    }
+                }
             }
         }
         chunk->generateMesh();

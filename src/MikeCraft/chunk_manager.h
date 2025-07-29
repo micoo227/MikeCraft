@@ -2,6 +2,7 @@
 
 #include "chunk.h"
 #include "region_file.h"
+#include "world_generator.h"
 
 #include <unordered_map>
 #include <memory>
@@ -16,7 +17,7 @@
 class ChunkManager
 {
    public:
-    ChunkManager();
+    ChunkManager(WorldGenerator& generator);
     ~ChunkManager();
 
     // Custom hash for std::pair<int, int>
@@ -36,6 +37,8 @@ class ChunkManager
     void                stopWorker();
 
    private:
+    WorldGenerator& worldGenerator;
+
     std::unordered_map<std::pair<int, int>, std::unique_ptr<Chunk>, pair_hash>      loadedChunks;
     std::unordered_map<std::pair<int, int>, std::unique_ptr<RegionFile>, pair_hash> regionFiles;
     std::mutex regionFilesMutex;

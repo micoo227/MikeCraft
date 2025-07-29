@@ -48,6 +48,12 @@
     <ClCompile Include="texture_atlas.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="world_generator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="spline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\res\shaders\default.vert">
@@ -86,6 +92,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="texture_atlas.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="world_generator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="spline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

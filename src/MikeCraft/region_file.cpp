@@ -16,6 +16,24 @@ RegionFile::RegionFile(const std::string& filePath) : filePath(filePath)
     rebuildFreeList();
 }
 
+void RegionFile::generateNoiseGrids(const WorldGenerator& generator, int regionX, int regionZ,
+                                    float frequency, int seed)
+{
+    size_t expectedSize = NOISE_GRID_SIZE * NOISE_GRID_SIZE;
+
+    // clang-format off
+    if (continentGrid.size() == expectedSize &&
+        erosionGrid.size()   == expectedSize &&
+        pvGrid.size()        == expectedSize)
+    {
+        return;
+    }
+    // clang-format on
+
+    generator.generateRegionNoiseGrids(continentGrid, erosionGrid, pvGrid, regionX, regionZ,
+                                       frequency, seed);
+}
+
 // Helper to load a chunk from the region file
 std::vector<uint8_t> RegionFile::loadChunk(int chunkX, int chunkZ)
 {

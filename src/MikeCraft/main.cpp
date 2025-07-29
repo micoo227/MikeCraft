@@ -4,6 +4,7 @@
 #include "renderer.h"
 #include "shader.h"
 #include "texture_atlas.h"
+#include "world_generator.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -16,7 +17,7 @@ float     lastY      = 600.0f / 2.0;
 Camera    camera;
 int       lastPlayerChunkX = 0;
 int       lastPlayerChunkZ = 0;
-const int renderRadius     = 2;
+const int renderRadius     = 4;
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -104,8 +105,9 @@ int main()
     shader.use();
     shader.setInt("atlas", 0);
 
-    Renderer     renderer(shader, camera);
-    ChunkManager chunkManager;
+    Renderer       renderer(shader, camera);
+    WorldGenerator worldGenerator(0);
+    ChunkManager   chunkManager(worldGenerator);
 
     glm::vec3 playerPos    = camera.position;
     int       playerChunkX = static_cast<int>(std::floor(playerPos.x / Chunk::WIDTH));

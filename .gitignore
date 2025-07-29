@@ -43,3 +43,6 @@ include/GLFW
 lib/glfw
 include/zlib
 lib/zlib
+include/FastNoise
+include/FastSIMD
+lib/noise

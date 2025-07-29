@@ -32,6 +32,8 @@ AtlasCoords Block::getAtlasCoords(Block::Id id, Direction face)
                 return AtlasCoords{1, 15};
         case Id::DIRT:
             return {2, 15};
+        case Id::STONE:
+            return {3, 15};
         default:
             return {0, 0};
     }
